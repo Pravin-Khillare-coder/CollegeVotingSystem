@@ -12,7 +12,7 @@ def get_file(type):
 # ================= HOME =================
 @app.route('/')
 def login():
-    return render_template("login.html")
+    return render_template("index.html")
 
 # ================= ADMIN =================
 @app.route('/admin', methods=['POST'])
