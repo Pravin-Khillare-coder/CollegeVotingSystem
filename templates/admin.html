@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+.container {
+    animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(20px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+</style>
+</head>
+<body>
+
+    
+
+<div class="container">
+    <div id="msgBox"></div>
+    <h2>⚙ Admin Dashboard</h2>
+    <p id="statusText" style="margin-top:10px; font-weight:bold;">
+    Voting Status: Not Started
+    </p>
+
+    <!-- MENU -->
+    <div id="menu">
+        <button onclick="showSection('show')">👀 Show Candidates</button>
+        <button onclick="showSection('add')">➕ Add Candidate</button>
+        <button onclick="showSection('delete')">❌ Delete Candidate</button>
+        <button onclick="startVoting()">▶ Start Voting</button>
+        <button onclick="stopVoting()">⛔ Stop Voting</button>
+        <button onclick="showSection('results')">📊 View Results</button>
+        <a href="/"><button class="back-btn">🚪 Logout</button></a>
+    </div>
+
+    <!-- SHOW CANDIDATES -->
+    <div id="show" class="section" style="display:none;">
+        <h3>Show Candidates</h3>
+        <select id="type">
+    <option value="CR">CR</option>
+    <option value="Sports">Sports</option>
+    <option value="Cultural">Cultural</option>
+</select>
+        <button onclick="loadCandidates()">Show</button>
+        <div id="candidateList"></div>
+        <button onclick="back()">⬅ Back</button>
+    </div>
+
+    <!-- ADD CANDIDATE -->
+    <div id="add" class="section" style="display:none;">
+        <h3>Add Candidate</h3>
+            <select id="addType">
+    <option value="CR">CR</option>
+    <option value="Sports">Sports</option>
+    <option value="Cultural">Cultural</option>
+</select>
+        <input id="addId" placeholder="ID">
+        <input id="addName" placeholder="Name">
+        <button onclick="addCandidate()">Add</button>
+        <button onclick="back()">⬅ Back</button>
+    </div>
+
+    <!-- DELETE CANDIDATE -->
+    <div id="delete" class="section" style="display:none;">
+        <h3>Delete Candidate</h3>
+        <select id="delType">
+    <option value="CR">CR</option>
+    <option value="Sports">Sports</option>
+    <option value="Cultural">Cultural</option>
+    </select>
+        <input id="delId" placeholder="ID">
+        <button onclick="deleteCandidate()">Delete</button>
+        <button onclick="back()">⬅ Back</button>
+    </div>
+
+    <!-- RESULTS -->
+    <div id="results" class="section" style="display:none;">
+        <h3>Results</h3>
+        <select id="resType">
+    <option value="CR">CR</option>
+    <option value="Sports">Sports</option>
+    <option value="Cultural">Cultural</option>
+        </select>
+        <button onclick="loadResults()">Load</button>
+        <div id="resultList"></div>
+        <button onclick="back()">⬅ Back</button>
+    </div>
+
+</div>
+
+<script>
+// SWITCH SECTIONS
+function showSection(id) {
+    document.getElementById("menu").style.display = "none";
+    document.querySelectorAll(".section").forEach(s => s.style.display = "none");
+    document.getElementById(id).style.display = "block";
+}
+
+function back() {
+    document.getElementById("menu").style.display = "block";
+    document.querySelectorAll(".section").forEach(s => s.style.display = "none");
+}
+
+function startVoting() {
+    fetch('/start')
+    .then(() => {
+        let s = document.getElementById("statusText");
+        s.innerText = "Voting Started";
+        s.style.color = "green";
+    });
+}
+
+function stopVoting() {
+    fetch('/stop')
+    .then(() => {
+        let s = document.getElementById("statusText");
+        s.innerText = "Voting Stopped";
+        s.style.color = "red";
+    });
+}
+
+// SHOW CANDIDATES
+function loadCandidates() {
+    let type = document.getElementById("type").value;
+
+    fetch("/candidates/" + type)
+    .then(res => res.json())
+    .then(data => {
+        let html = "";
+        data.candidates.forEach(c => {
+            html += `<div class="card">${c[0]} - ${c[1]}</div>`;
+        });
+        document.getElementById("candidateList").innerHTML = html;
+    });
+}
+
+// ADD CANDIDATE
+function addCandidate() {
+    let type = document.getElementById("addType").value;
+    let id = document.getElementById("addId").value;
+    let name = document.getElementById("addName").value;
+
+    fetch("/add", {
+        method: "POST",
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        body: `type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}`
+    })
+    .then(res => res.text())
+    .then(msg => {
+        showMessage(
+            msg,msg.includes("Already") ? "error" : "success"
+        );
+    });
+}
+// DELETE
+function deleteCandidate() {
+    let type = document.getElementById("delType").value;
+    let id = document.getElementById("delId").value;
+
+    fetch("/delete", {
+        method: "POST",
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        body: `type=${type}&id=${id}`
+    })
+    .then(res => res.text())
+    .then(showMessage(msg, msg.includes("Not") ? "error" : "success"));
+}
+
+// RESULTS
+function loadResults() {
+    let type = document.getElementById("resType").value;
+
+    fetch("/candidates/" + type)
+    .then(res => res.json())
+    .then(data => {
+        let html = "";
+
+        if (data.candidates.length === 0) {
+            html = "<p>No candidates found</p>";
+            document.getElementById("resultList").innerHTML = html;
+            return;
+        }
+
+        let maxVotes = -1;
+        let winners = [];
+
+        // FIND MAX VOTES
+        data.candidates.forEach(c => {
+            let votes = parseInt(c[2]);
+
+            if (votes > maxVotes) {
+                maxVotes = votes;
+                winners = [c[1]];
+            } 
+            else if (votes === maxVotes) {
+                winners.push(c[1]);
+            }
+        });
+
+        function showMessage(text, type="success") {
+    let box = document.getElementById("msgBox");
+    box.innerText = text;
+    box.className = type;
+    box.style.display = "block";
+
+    setTimeout(() => {
+        box.style.display = "none";
+    }, 3000);
+}
+
+        // DISPLAY ALL CANDIDATES
+        data.candidates.forEach(c => {
+            let isWinner = winners.includes(c[1]);
+            let style = isWinner ? "background: gold;" : "";
+
+            html += `<div class="card" style="${style}">
+                        ${c[1]} - Votes: ${c[2]}
+                     </div>`;
+        });
+
+        // SHOW RESULT
+        if (winners.length === 1) {
+            html += `<h3>🏆 Winner: ${winners[0]}</h3>`;
+        } else {
+            html += `<h3>🤝 Tie between:</h3>`;
+            winners.forEach(w => {
+                html += `<p>${w}</p>`;
+            });
+        }
+
+        document.getElementById("resultList").innerHTML = html;
+    });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="container">
+    <h2>🗳 Voting System</h2>
+
+    <h3>Select Role</h3>
+
+    <button onclick="showAdmin()">Admin</button>
+    <button onclick="location.href='/student'">Student</button>
+
+    <!-- ADMIN LOGIN FORM -->
+    <div id="adminForm" style="display:none;">
+        <h3>Admin Login</h3>
+        <form action="/admin" method="post">
+            <input name="user" placeholder="Username" required>
+            <input name="pass" type="password" placeholder="Password" required>
+            <button>Login</button>
+        </form>
+
+        <button onclick="hideAdmin()">⬅ Back</button>
+    </div>
+</div>
+
+<script>
+function showAdmin() {
+    document.getElementById("adminForm").style.display = "block";
+}
+
+function hideAdmin() {
+    document.getElementById("adminForm").style.display = "none";
+}
+</script>
+
+</body>
+</html>

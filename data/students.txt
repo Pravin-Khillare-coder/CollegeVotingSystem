@@ -1,0 +1,3 @@
+101,pass123,CR=0,Sports=1,Cultural=1
+102,pass123,CR=0,Sports=0,Cultural=0
+103,pass123,CR=0,Sports=0,Cultural=0

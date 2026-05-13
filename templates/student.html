@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+<div class="container">
+    <div id="msgBox" class="msg"></div>
+
+<!-- LOGIN -->
+<div id="loginSection">
+    <h2>🎓 Student Login</h2>
+    <input id="sid" placeholder="Enter MIS ID">
+    <input id="spass" type="password" placeholder="Enter Password">
+    <button onclick="login()">Login</button>
+</div>
+
+<!-- MENU -->
+<div id="menuSection" style="display:none;">
+    <h2>📋 Student Menu</h2>
+
+    <button onclick="showSection('voteSection')">🗳 Vote</button>
+    <button onclick="showSection('passSection')">🔑 Change Password</button>
+    <button onclick="logout()">🚪 Logout</button>
+</div>
+
+<!-- VOTE -->
+<div id="voteSection" style="display:none;">
+    <h3>Voting Panel</h3>
+
+    <select id="type">
+        <option value="CR">CR</option>
+        <option value="Sports">Sports</option>
+        <option value="Cultural">Cultural</option>
+    </select>
+
+    <button onclick="load()">Load Candidates</button>
+
+    <div id="list"></div>
+
+    <button onclick="back()">⬅ Back</button>
+</div>
+
+<!-- CHANGE PASSWORD -->
+<div id="passSection" style="display:none;">
+    <h3>Change Password</h3>
+
+    <input id="oldPass" type="password" placeholder="Current Password">
+    <input id="newPass" type="password" placeholder="New Password">
+
+    <button onclick="changePass()">Update</button>
+
+    <button onclick="back()">⬅ Back</button>
+</div>
+
+</div>
+
+<script>
+
+let currentUser = "";
+
+// LOGIN
+function login() {
+    let id = sid.value.trim();
+    let pass = spass.value.trim();
+
+    fetch("/student-login", {
+        method: "POST",
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        body: `id=${id}&pass=${pass}`
+    })
+    .then(res => res.text())
+    .then(msg => {
+        if (msg === "success") {
+            currentUser = id;
+            loginSection.style.display = "none";
+            menuSection.style.display = "block";
+        } else {
+            alert("Invalid Credentials");
+        }
+    });
+}
+
+// NAVIGATION
+function showSection(id) {
+    menuSection.style.display = "none";
+    voteSection.style.display = "none";
+    passSection.style.display = "none";
+
+    document.getElementById(id).style.display = "block";
+}
+
+function back() {
+    menuSection.style.display = "block";
+    voteSection.style.display = "none";
+    passSection.style.display = "none";
+}
+
+// LOAD CANDIDATES
+function load() {
+    fetch("/candidates/" + type.value)
+    .then(res => res.json())
+    .then(data => {
+        let html = "";
+        data.candidates.forEach(c => {
+            html += `
+            <div class="card">
+                ${c[1]}
+                <button onclick="vote('${type.value}','${c[0]}')">Vote</button>
+            </div>`;
+        });
+        list.innerHTML = html;
+    });
+}
+
+// VOTE
+function vote(type, cid) {
+    fetch("/vote", {
+        method: "POST",
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        body: `sid=${currentUser}&type=${type}&id=${cid}`
+    })
+    .then(res => res.text())
+    .then(msg => {
+    showMessage(msg, msg.includes("Already") ? "error" : "success");
+});
+}
+
+// CHANGE PASSWORD
+function changePass() {
+    fetch("/change-pass", {
+        method: "POST",
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        body: `id=${currentUser}&old=${oldPass.value}&new=${newPass.value}`
+    })
+    .then(res => res.text())
+    .then(msg => {
+        showMessage(msg, msg.includes("Already") ? "error" : "success");
+    });
+}
+
+function showMessage(text, type="success") {
+    let box = document.getElementById("msgBox");
+    box.innerText = text;
+    box.className = "msg " + type;
+    box.style.display = "block";
+
+    setTimeout(() => {
+        box.style.display = "none";
+    }, 3000);
+}
+
+// LOGOUT
+function logout() {
+    currentUser = "";
+    loginSection.style.display = "block";
+    menuSection.style.display = "none";
+}
+
+</script>
+
+</body>
+</html>
